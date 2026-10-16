@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>heovl - Xem video</title>
+    <style>
+        /* Cài đặt chung */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            background-color: #0b0b0e; /* Màu nền tối hiện đại */
+            color: #ffffff; 
+            line-height: 1.5; 
+        }
+
+        /* Thanh Header */
+        header { 
+            background-color: #141419; 
+            padding: 15px 25px; 
+            display: flex; 
+            align-items: center; 
+            border-bottom: 1px solid #22222b; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        
+        .logo { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 24px; 
+            font-weight: 800; 
+            background: linear-gradient(135deg, #ff416c, #ff4b2b); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            margin-right: 30px; 
+            cursor: pointer; 
+        }
+        
+        .logo .pig-icon { 
+            font-size: 28px; 
+            line-height: 1; 
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            -webkit-text-fill-color: initial;
+        }
+        
+        .logo:hover .pig-icon { transform: scale(1.3) rotate(-15deg); }
+        
+        .search-bar { flex-grow: 1; max-width: 500px; display: flex; }
+        .search-bar input { 
+            width: 100%; padding: 10px 18px; 
+            border-radius: 20px 0 0 20px; 
+            border: 1px solid #333; 
+            background-color: #1a1a22; 
+            color: white; outline: none; 
+            transition: border-color 0.3s;
+        }
+        .search-bar input:focus { border-color: #ff4b2b; }
+        .search-bar button { 
+            padding: 10px 25px; border-radius: 0 20px 20px 0; 
+            border: none; 
+            background: linear-gradient(135deg, #ff416c, #ff4b2b); 
+            color: white; font-weight: bold; cursor: pointer; 
+            transition: opacity 0.3s;
+        }
+        .search-bar button:hover { opacity: 0.8; }
+
+        /* Khu vực chứa video */
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        
+        /* Bố cục lưới: 2 cột ngang */
+        .video-list { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; /* 2 cột */
+            gap: 20px; 
+        }
+
+        /* Thẻ video */
+        .video-card { 
+            background-color: #141419; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+            transition: transform 0.3s, box-shadow 0.3s; 
+            cursor: pointer; 
+            border: 1px solid #22222b;
+            position: relative;
+        }
+        
+        .video-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 10px 25px rgba(255, 75, 43, 0.2); 
+            border-color: #ff4b2b;
+        }
+
+        /* Phần chứa ảnh thumbnail */
+        .thumbnail-wrapper { 
+            position: relative; 
+            width: 100%; 
+            aspect-ratio: 16/9; /* Tỷ lệ vàng cho video */
+            background-color: #000; 
+            overflow: hidden; 
+        }
+        
+        .thumbnail-wrapper img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            transition: transform 0.5s ease; 
+        }
+        
+        .video-card:hover .thumbnail-wrapper img { transform: scale(1.08); }
+
+        /* Lớp phủ đen mờ để chữ dễ đọc */
+        .overlay-gradient {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60%;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
+            pointer-events: none;
+        }
+
+        /* Nút Play giả lập */
+        .play-button { 
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 45px; height: 45px; 
+            background: rgba(255, 65, 108, 0.9); 
+            border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center; 
+            color: white; font-size: 18px; padding-left: 5px; 
+            transition: all 0.3s; 
+            box-shadow: 0 0 15px rgba(255, 65, 108, 0.6);
+            opacity: 0.8;
+        }
+        
+        .video-card:hover .play-button { 
+            background: #ff4b2b; 
+            transform: translate(-50%, -50%) scale(1.2); 
+            opacity: 1;
+        }
+
+        /* Tựa đề đè lên ảnh */
+        .video-title { 
+            position: absolute; 
+            bottom: 10px; 
+            left: 12px; 
+            right: 12px; 
+            font-size: 15px; 
+            font-weight: 700; 
+            color: #fff; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.9); 
+            display: -webkit-box; 
+            -webkit-line-clamp: 2; 
+            -webkit-box-orient: vertical; 
+            overflow: hidden; 
+            line-height: 1.3;
+            z-index: 2;
+        }
+
+        /* Thông tin meta và tag */
+        .video-info { padding: 12px 15px; border-top: 1px solid #22222b; }
+        
+        .video-meta { 
+            display: flex; flex-wrap: wrap; gap: 12px; 
+            font-size: 12px; color: #888; margin-bottom: 10px; 
+        }
+        .video-meta span { display: flex; align-items: center; gap: 4px; }
+
+        .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tag { 
+            background-color: #1f1f2a; color: #a0a0b0; 
+            font-size: 11px; padding: 3px 8px; 
+            border-radius: 12px; transition: all 0.2s; 
+        }
+        .tag:hover { background-color: #2a2a35; color: #fff; }
+        
+        /* Tag nổi bật màu đỏ cam */
+        .tag.hot { 
+            background: linear-gradient(135deg, #ff416c, #ff4b2b); 
+            color: #fff; font-weight: bold; border: none;
+        }
+
+        /* Footer */
+        footer { text-align: center; padding: 40px; color: #555; font-size: 14px; margin-top: 40px; }
+
+        /* Modal (Popup) chứa Video */
+        .modal { 
+            display: none; position: fixed; z-index: 999; left: 0; top: 0; 
+            width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.95); 
+            justify-content: center; align-items: center; opacity: 0; 
+            backdrop-filter: blur(5px); transition: opacity 0.3s ease; 
+        }
+        .modal.show { display: flex; opacity: 1; }
+        
+        .modal-content { 
+            position: relative; width: 90%; max-width: 900px; 
+            background-color: #000; border-radius: 12px; overflow: hidden; 
+            box-shadow: 0 0 40px rgba(255, 75, 43, 0.4); 
+            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .modal.show .modal-content { transform: scale(1); }
+        
+        .modal-content video { width: 100%; display: block; max-height: 85vh; background-color: #000; }
+        
+        .close-btn { 
+            position: absolute; top: -45px; right: 0; color: #fff; 
+            font-size: 32px; font-weight: bold; cursor: pointer; transition: color 0.3s; 
+        }
+        .close-btn:hover { color: #ff4b2b; }
+
+        /* Responsive cho điện thoại */
+        @media (max-width: 600px) {
+            .video-list { grid-template-columns: 1fr; } /* 1 cột trên mobile */
+            header { flex-direction: column; gap: 10px; padding: 15px; }
+            .logo { margin-right: 0; }
+            .search-bar { width: 100%; max-width: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <span class="pig-icon">🐷</span>
+            heo<span>vl</span>
+        </div>
+        <div class="search-bar">
+            <input type="text" placeholder="Tìm kiếm video...">
+            <button>Tìm</button>
+        </div>
+    </header>
+
+    <!-- Nội dung chính -->
+    <div class="container">
+        <div class="video-list">
+
+            <!-- Video 1 -->
+            <div class="video-card" onclick="openVideo('vl11.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl1.jpg" alt="Ảnh video 1">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">vì đánh đàn hay nên đã giúp chị gái học bằng nốt ren la thảm thiết</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 110.6k</span>
+                        <span>👍 54</span>
+                        <span>❤️ 96%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag hot">#HOT</span>
+                        <span class="tag">#guitar</span>
+                        <span class="tag">#cover</span>
+                        <span class="tag">#hocsinh</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 2 -->
+            <div class="video-card" onclick="openVideo('vl12.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl2.jpg" alt="Ảnh video 2">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">ggy lút cán em ghê dáng đẹp hồng cực</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 110.6k</span>
+                        <span>👍 54</span>
+                        <span>❤️ 96%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag hot">#VIRAL</span>
+                        <span class="tag">#vlog</span>
+                        <span class="tag">#review</span>
+                        <span class="tag">#hocsinh</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 3 -->
+            <div class="video-card" onclick="openVideo('vl13.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl3.jpg" alt="Ảnh video 3">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">Cô giáo cùng các em nam sinh mới lớn</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 562.5k</span>
+                        <span>👍 545</span>
+                        <span>👎 177</span>
+                        <span>❤️ 75%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag hot">#TRENDING</span>
+                        <span class="tag">#hocduong</span>
+                        <span class="tag">#cogiao</span>
+                        <span class="tag">#namSinh</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 4 -->
+            <div class="video-card" onclick="openVideo('vl14.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl4.jpg" alt="Ảnh video 4">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">Video mới cập nhật 1</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 0</span><span>👍 0</span><span>❤️ 0%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag hot">#MOI</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 5 -->
+            <div class="video-card" onclick="openVideo('vl15.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl5.jpg" alt="Ảnh video 5">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">Học sinh cá biệt và cú twist bất ngờ</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 210k</span><span>👍 1.2k</span><span>❤️ 98%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag hot">#HOT</span>
+                        <span class="tag">#hocduong</span>
+                        <span class="tag">#twist</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 6 -->
+            <div class="video-card" onclick="openVideo('vl16.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl6.jpg" alt="Ảnh video 6">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">Điểm danh những pha xử lý thần thánh</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 85k</span><span>👍 320</span><span>❤️ 90%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag">#giaitri</span>
+                        <span class="tag">#haihuoc</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 7 -->
+            <div class="video-card" onclick="openVideo('vl17.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl7.jpg" alt="Ảnh video 7">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">Khoảnh khắc dở khóc dở cười</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 45k</span><span>👍 150</span><span>❤️ 85%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag">#camdien</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 8 -->
+            <div class="video-card" onclick="openVideo('vl18.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl8.jpg" alt="Ảnh video 8">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">Chuyện tình xóm trọ</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 320k</span><span>👍 2.5k</span><span>❤️ 99%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag hot">#TRENDING</span>
+                        <span class="tag">#tinhcam</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 9 -->
+            <div class="video-card" onclick="openVideo('vl19.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl9.jpg" alt="Ảnh video 9">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">Sự thật ít ai biết về lớp học này</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 12k</span><span>👍 80</span><span>❤️ 70%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag">#bimat</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video 10 -->
+            <div class="video-card" onclick="openVideo('vl20.mp4')">
+                <div class="thumbnail-wrapper">
+                    <img src="vl10.jpg" alt="Ảnh video 10">
+                    <div class="overlay-gradient"></div>
+                    <div class="video-title">Tổng hợp clip triệu view mới nhất</div>
+                    <div class="play-button">▶</div>
+                </div>
+                <div class="video-info">
+                    <div class="video-meta">
+                        <span>👁️ 1.5M</span><span>👍 15k</span><span>❤️ 97%</span>
+                    </div>
+                    <div class="tags">
+                        <span class="tag hot">#HOT</span>
+                        <span class="tag">#tophot</span>
+                        <span class="tag">#heovl</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal chứa Video -->
+    <div id="videoModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeVideo()">✖</span>
+            <video id="modalVideo" controls>
+                <source src="" type="video/mp4">
+                Trình duyệt của bạn không hỗ trợ thẻ video.
+            </video>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        &copy; 2026 heovl. Tất cả các video được sưu tầm.
+    </footer>
+
+    <script>
+        const modal = document.getElementById('videoModal');
+        const videoPlayer = document.getElementById('modalVideo');
+
+        function openVideo(videoSrc) {
+            videoPlayer.src = videoSrc;
+            modal.classList.add('show');
+            videoPlayer.play().catch(error => { 
+                console.log("Trình duyệt chặn tự động phát, cần bấm nút play."); 
+            });
+        }
+
+        function closeVideo() {
+            videoPlayer.pause();
+            videoPlayer.currentTime = 0;
+            videoPlayer.src = "";
+            modal.classList.remove('show');
+        }
+
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) { closeVideo(); }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && modal.classList.contains('show')) { closeVideo(); }
+        });
+    </script>
+
+</body>
+</html>
